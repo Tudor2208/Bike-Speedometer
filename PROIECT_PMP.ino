@@ -4,6 +4,7 @@
 #define hall_sensor_pin A0
 LiquidCrystal_I2C lcd(0x27,20,4);
 
+int op = 1;
 bool alarm_activated = false;
 
 const int val_detect_magnet = 500;
@@ -15,12 +16,15 @@ long long t1 = 0;
 
 float seconds = 0;
 float current_speed = 0;
+float max_speed = 0;
 float total_distance = 0;
+int current_rpm = 0;
 
 boolean stringComplete = false;
 String inputString = "";
 
 void setup() {
+  op = 1;
   Serial.begin(9600);
   
   // configurare pini
@@ -41,8 +45,13 @@ void printInfo(float speed, float dist) {
   lcd.clear();
   lcd.setCursor(0,0);
   lcd.print("Speed:");
-  lcd.print(speed * 3.6);
-  lcd.print("km/h");
+  if(op > 0) {
+    lcd.print(speed * 3.6);
+    lcd.print("km/h");
+  } else {
+    lcd.print(current_rpm);
+    lcd.print(" RPM");
+  }
   lcd.setCursor(0, 1);
   lcd.print("Distance:");
   lcd.print(dist / 1000);
@@ -54,6 +63,10 @@ void was_detected() {
   t1 = millis();
   seconds = (float)(t1 - t0) / 1000;
   current_speed = dist_between_detections / seconds;
+  current_rpm = (int)60 / seconds;
+  if(current_speed * 3.6> max_speed) {
+    max_speed = current_speed * 3.6;
+  }
   total_distance += dist_between_detections;
   printInfo(current_speed, total_distance);
 }
@@ -63,6 +76,7 @@ void check_stop(){
     //bicicleta s-a oprit
     t1 = millis();
     current_speed = 0;
+    current_rpm = 0;
     seconds = 0;
     printInfo(current_speed, total_distance);
     
@@ -107,14 +121,24 @@ void loop() {
   }
 
   if (stringComplete) {
-    if (inputString.indexOf("alarm_start") == 0) {
+    if (inputString.indexOf("alarm_enable") == 0) {
       alarm_activated = true;
-    } else if (inputString.indexOf("alarm_stop") == 0) {
+    } else if (inputString.indexOf("alarm_disable") == 0) {
       alarm_activated = false;
+    } else if (inputString.indexOf("max_speed") == 0) {
+      Serial.print("Viteza maxima: ");
+      Serial.print(max_speed);
+      Serial.println("km/h");
+    } else if (inputString.indexOf("reset_distance") == 0) {
+      total_distance = 0;
     }
 
     inputString = "";
     stringComplete = false;
+   }
+
+   if(millis() % 3000 == 0) {
+      op = op * -1;
    }
   
 }
