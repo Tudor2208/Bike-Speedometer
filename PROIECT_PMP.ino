@@ -7,7 +7,7 @@ LiquidCrystal_I2C lcd(0x27,20,4);
 int op = 1;
 bool alarm_activated = false;
 
-const int val_detect_magnet = 500;
+const int val_detect_magnet = 10;
 const float dist_between_detections = 2.194; //m 
 const int max_time_between_detections = 5;
 
